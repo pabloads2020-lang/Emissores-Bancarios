@@ -18,6 +18,7 @@
         .search-group { flex: 2; min-width: 250px; position: relative; }
         .search-group label { display: block; font-size: 0.7rem; color: #9a907b; margin-bottom: 6px; letter-spacing: 0.5px; }
         .search-wrapper { position: relative; width: 100%; }
+        .search-wrapper form { margin: 0; padding: 0; }
         .search-wrapper input { width: 100%; background: #101319; border: 1px solid #3a3a4e; padding: 12px 40px 12px 16px; border-radius: 40px; color: #e1e2eb; font-size: 0.9rem; font-family: inherit; }
         .clear-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #9a907b; cursor: pointer; font-size: 1.1rem; padding: 4px; display: none; align-items: center; justify-content: center; border-radius: 50%; transition: 0.2s; }
         .clear-btn:hover { color: #e0ac2c; background: #3a3a4e; }
@@ -62,6 +63,7 @@
         .admin-btn:hover { background: #e0ac2c; color: #0e1117; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #1e1e2f; border-radius: 24px; padding: 24px; width: 90%; max-width: 400px; border: 1px solid #e0ac2c; }
+        .modal-content form { margin: 0; padding: 0; }
         .modal-content input { width: 100%; background: #101319; border: 1px solid #3a3a4e; padding: 10px; border-radius: 30px; color: white; margin: 16px 0; }
         .flex-btns { display: flex; gap: 12px; justify-content: flex-end; }
         .upload-area-sm { border: 1px dashed #3a3a4e; border-radius: 16px; padding: 16px; text-align: center; margin-top: 16px; cursor: pointer; }
@@ -83,8 +85,11 @@
             <div class="search-group">
                 <label>🔍 Digite o nome (mínimo 2 letras)</label>
                 <div class="search-wrapper">
-                    <input type="search" id="searchInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Ex: BRADESCO, ITAU, PICPAY, BNDES...">
-                    <button class="clear-btn" id="clearSearchBtn" title="Limpar busca">✖</button>
+                    <form onsubmit="return false;" autocomplete="off">
+                        <input type="hidden" name="dummy" value="prevent-pwd-manager">
+                        <input type="text" id="searchInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Ex: BRADESCO, ITAU, PICPAY, BNDES...">
+                        <button class="clear-btn" id="clearSearchBtn" title="Limpar busca" type="button">✖</button>
+                    </form>
                 </div>
                 <div id="autocompleteList" class="autocomplete-items" style="display: none;"></div>
             </div>
@@ -96,9 +101,14 @@
 <div id="adminModal" class="modal">
     <div class="modal-content">
         <h3>🔐 Atualização de dados</h3>
-        <input type="password" id="adminPassword" placeholder="Senha de administrador">
-        <div id="uploadAreaModal" class="upload-area-sm"><div>📂 Clique ou arraste o novo arquivo Excel</div><input type="file" id="adminFileInput" accept=".xlsx, .xls"></div>
-        <div class="flex-btns"><button class="btn" id="cancelModalBtn">Cancelar</button></div>
+        <form onsubmit="return false;" autocomplete="off">
+            <input type="password" id="adminPassword" placeholder="Senha de administrador" autocomplete="new-password">
+            <div id="uploadAreaModal" class="upload-area-sm" style="display: none;">
+                <div>📂 Clique ou arraste o novo arquivo Excel</div>
+                <input type="file" id="adminFileInput" accept=".xlsx, .xls" autocomplete="off">
+            </div>
+            <div class="flex-btns"><button class="btn" id="cancelModalBtn" type="button">Cancelar</button></div>
+        </form>
     </div>
 </div>
 <script>
@@ -17026,84 +17036,6 @@
     }
 ];
     let instMap = new Map();
-    function setupAutocomplete() {
-        searchInput = document.getElementById('searchInput');
-        autocompleteDiv = document.getElementById('autocompleteList');
-        clearBtn = document.getElementById('clearSearchBtn');
-        
-        function toggleClearBtn() { clearBtn.style.display = searchInput.value.length > 0 ? 'flex' : 'none'; }
-        searchInput.addEventListener('input', toggleClearBtn);
-        clearBtn.addEventListener('click', () => { searchInput.value = ''; autocompleteDiv.style.display = 'none'; renderDetalhes(null); toggleClearBtn(); searchInput.focus(); currentFocus = -1; });
-        
-        searchInput.addEventListener('input', (e) => {
-            const term = e.target.value.trim();
-            if (term.length < 2) { autocompleteDiv.style.display = 'none'; renderDetalhes(null); currentFocus = -1; return; }
-            const termLower = term.toLowerCase();
-            const matches = instituicoes.filter(inst => inst['Instituição'].toLowerCase().includes(termLower));
-            if (matches.length === 0) { autocompleteDiv.style.display = 'none'; renderDetalhes(null); currentFocus = -1; return; }
-            autocompleteDiv.innerHTML = '';
-            matches.slice(0, 50).forEach((inst, idx) => {
-                const div = document.createElement('div');
-                div.className = 'autocomplete-item';
-                div.setAttribute('data-index', idx);
-                const ratingClass = getRatingColorClass(inst['Rating']);
-                div.innerHTML = `<span>${escapeHtml(inst['Instituição'])}</span><span class="rating-badge ${ratingClass}">${escapeHtml(inst['Rating'] || 'NR')}</span>`;
-                div.addEventListener('click', () => {
-                    searchInput.value = inst['Instituição'];
-                    autocompleteDiv.style.display = 'none';
-                    renderDetalhes(inst);
-                    toggleClearBtn();
-                    currentFocus = -1;
-                });
-                autocompleteDiv.appendChild(div);
-            });
-            autocompleteDiv.style.display = 'block';
-            currentFocus = -1;
-        });
-        
-        searchInput.addEventListener('keydown', (e) => {
-            const items = autocompleteDiv.querySelectorAll('.autocomplete-item');
-            if (items.length === 0) return;
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                currentFocus++;
-                if (currentFocus >= items.length) currentFocus = 0;
-                updateActiveItem(items, currentFocus);
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                currentFocus--;
-                if (currentFocus < 0) currentFocus = items.length - 1;
-                updateActiveItem(items, currentFocus);
-            } else if (e.key === 'Enter') {
-                e.preventDefault();
-                if (currentFocus >= 0 && currentFocus < items.length) items[currentFocus].click();
-                else if (autocompleteDiv.style.display === 'block' && items.length > 0) items[0].click();
-                else {
-                    const term = searchInput.value.trim();
-                    if (term.length > 0) {
-                        const exactMatch = instituicoes.find(inst => inst['Instituição'].toLowerCase() === term.toLowerCase());
-                        if (exactMatch) { renderDetalhes(exactMatch); searchInput.value = exactMatch['Instituição']; toggleClearBtn(); }
-                        else {
-                            const similar = instituicoes.find(inst => inst['Instituição'].toLowerCase().includes(term.toLowerCase()));
-                            if (similar) { renderDetalhes(similar); searchInput.value = similar['Instituição']; toggleClearBtn(); }
-                        }
-                    }
-                }
-                autocompleteDiv.style.display = 'none';
-                currentFocus = -1;
-            }
-        });
-        
-        function updateActiveItem(items, focusIndex) {
-            items.forEach((item, idx) => {
-                if (idx === focusIndex) { item.classList.add('active'); item.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
-                else item.classList.remove('active');
-            });
-        }
-        
-        document.addEventListener('click', (e) => { if (e.target !== searchInput && !autocompleteDiv.contains(e.target)) { autocompleteDiv.style.display = 'none'; currentFocus = -1; } });
-        toggleClearBtn();
-    }
     function getRatingColorClass(rating) {
         if (!rating) return 'rating-neutral';
         const r = rating.toString().toUpperCase();
@@ -17238,28 +17170,30 @@
         document.addEventListener('click', (e) => { if (e.target !== searchInput && !autocompleteDiv.contains(e.target)) { autocompleteDiv.style.display = 'none'; currentFocus = -1; } });
         toggleClearBtn();
     }
-    // ... funções auxiliares
-    rebuildMap();
-    updateStats();
-    setupAutocomplete();
-    const adminBtn = document.getElementById('adminBtn');
-    const modal = document.getElementById('adminModal');
-    const cancelBtn = document.getElementById('cancelModalBtn');
-    const adminPass = document.getElementById('adminPassword');
-    const uploadAreaModal = document.getElementById('uploadAreaModal');
-    const adminFileInput = document.getElementById('adminFileInput');
-    adminBtn.addEventListener('click', () => { modal.style.display = 'flex'; adminPass.value = ''; uploadAreaModal.style.display = 'block'; adminFileInput.value = ''; });
-    cancelBtn.addEventListener('click', () => { modal.style.display = 'none'; });
-    adminPass.addEventListener('input', (e) => { if (e.target.value === ADMIN_SENHA) uploadAreaModal.style.display = 'block'; else uploadAreaModal.style.display = 'none'; });
-    uploadAreaModal.addEventListener('click', () => adminFileInput.click());
-    adminFileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        try {
-            await processarExcelParaGerarHTML(file);
-            modal.style.display = 'none';
-        } catch (err) { alert('Erro: '+err.message); }
-    });
+    function normalizarTexto(str) { return str.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim(); }
+    function encontrarColunas(headers) {
+        const map = {
+            Instituição: ['instituicao','instituição','nome','banco','empresa'],
+            Seg: ['seg','segmento','categoria'],
+            Rating: ['rating','classificacao','nota'],
+            'Peso Sug.': ['peso sug','peso sugerido','peso','sugerido'],
+            'Score Final': ['score final','score','pontuacao final','nota final'],
+            Basileia: ['basileia','capital'],
+            'NPL (15d)': ['npl','inadimplencia','15d'],
+            ROE: ['roe','retorno patrimonio'],
+            LDR: ['ldr','liquidez'],
+            'IRBB/PR': ['irbb','pr','irbb/pr']
+        };
+        let indices = {};
+        for (let campo in map) indices[campo] = -1;
+        for (let i=0; i<headers.length; i++) {
+            let h = normalizarTexto(headers[i]);
+            for (let [campo, chaves] of Object.entries(map)) {
+                if (indices[campo] === -1 && chaves.some(c => h.includes(c))) indices[campo] = i;
+            }
+        }
+        return indices;
+    }
     async function processarExcelParaGerarHTML(file) {
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data, { type: 'array' });
@@ -17290,24 +17224,40 @@
             novasInst.push(obj);
         }
         if (novasInst.length === 0) throw new Error('Nenhuma instituição válida');
-        const htmlContent = gerarHTMLCompleto(novasInst);
-        const blob = new Blob([htmlContent], { type: 'text/html' });
+        
+        // Gerar o novo HTML com os dados atualizados (mesmo template, mas com o array substituído)
+        const novoHTML = gerarHTMLComDados(novasInst);
+        const blob = new Blob([novoHTML], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = 'buscador_atualizado.html';
         a.click();
         URL.revokeObjectURL(url);
-        alert('✅ Novo HTML gerado com '+novasInst.length+' instituições.');
+        alert(`✅ Novo HTML gerado com ${novasInst.length} instituições. Substitua o arquivo no GitHub.`);
     }
-    function encontrarColunas(headers) {
-        const map = { Instituição: ['instituicao','instituição','nome','banco'], Seg: ['seg','segmento'], Rating: ['rating','classificacao','nota'], 'Peso Sug.': ['peso sug','peso sugerido'], 'Score Final': ['score final','score'], Basileia: ['basileia'], 'NPL (15d)': ['npl','15d'], ROE: ['roe'], LDR: ['ldr'], 'IRBB/PR': ['irbb','pr'] };
-        let indices = { Instituição:-1, Seg:-1, Rating:-1, 'Peso Sug.':-1, 'Score Final':-1, Basileia:-1, 'NPL (15d)':-1, ROE:-1, LDR:-1, 'IRBB/PR':-1 };
-        for (let i=0; i<headers.length; i++) { let h = normalizarTexto(headers[i]); for (let [campo, chaves] of Object.entries(map)) { if (indices[campo] === -1 && chaves.some(c => h.includes(c))) indices[campo] = i; } }
-        return indices;
-    }
-    function normalizarTexto(str) { return str.toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim(); }
-    function gerarHTMLCompleto(dados) { return `<!DOCTYPE html>...`; }
+    function gerarHTMLComDados(dados) { return `<!DOCTYPE html>...`; }
+    rebuildMap();
+    updateStats();
+    setupAutocomplete();
+    const adminBtn = document.getElementById('adminBtn');
+    const modal = document.getElementById('adminModal');
+    const cancelBtn = document.getElementById('cancelModalBtn');
+    const adminPass = document.getElementById('adminPassword');
+    const uploadAreaModal = document.getElementById('uploadAreaModal');
+    const adminFileInput = document.getElementById('adminFileInput');
+    adminBtn.addEventListener('click', () => { modal.style.display = 'flex'; adminPass.value = ''; uploadAreaModal.style.display = 'block'; adminFileInput.value = ''; });
+    cancelBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+    adminPass.addEventListener('input', (e) => { if (e.target.value === ADMIN_SENHA) uploadAreaModal.style.display = 'block'; else uploadAreaModal.style.display = 'none'; });
+    uploadAreaModal.addEventListener('click', () => adminFileInput.click());
+    adminFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            await processarExcelParaGerarHTML(file);
+            modal.style.display = 'none';
+        } catch (err) { alert('Erro: '+err.message); }
+    });
 </script>
 </body>
 </html>
