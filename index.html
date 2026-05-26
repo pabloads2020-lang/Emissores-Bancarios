@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Buscador de Instituições Financeiras</title>
-    <meta name="data-atualizacao" content="26/05/2026, 15:05">
+    <meta name="data-atualizacao" content="26/05/2026, 18:10">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0&display=swap" rel="stylesheet">
@@ -17513,10 +17513,11 @@
     adminBtn.addEventListener('click', () => { modal.style.display = 'flex'; adminPass.value = ''; uploadAreaModal.style.display = 'block'; adminFileInput.value = ''; });
     cancelBtn.addEventListener('click', () => { modal.style.display = 'none'; });
     adminPass.addEventListener('input', (e) => { if (e.target.value === ADMIN_SENHA) uploadAreaModal.style.display = 'block'; else uploadAreaModal.style.display = 'none'; });
-    uploadAreaModal.addEventListener('click', () => adminFileInput.click());
+    uploadAreaModal.addEventListener('click', () => { if (adminPass.value === ADMIN_SENHA) adminFileInput.click(); });
     adminFileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        if (adminPass.value !== ADMIN_SENHA) { alert('Senha incorreta.'); adminFileInput.value = ''; return; }
         try {
             await processarExcelParaGerarHTML(file);
             modal.style.display = 'none';
