@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Buscador de Instituições Financeiras</title>
+    <meta name="data-atualizacao" content="25/05/2026, 21:13">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0&display=swap" rel="stylesheet">
@@ -71,6 +72,7 @@
         .page-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:6px; }
         .page-title { font-size:1.5rem; font-weight:700; color:var(--gold); letter-spacing:-.02em; }
         .page-subtitle { font-size:.8rem; color:var(--text3); padding-left:14px; border-left:3px solid var(--amber); margin-bottom:20px; }
+        #dataAtualizacao { margin-left:8px; font-size:.75rem; color:var(--text3); }
 
         /* ── Cards ── */
         .card { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:22px 24px; margin-bottom:20px; }
@@ -227,7 +229,7 @@
             </div>
             <button class="admin-btn" id="adminBtn">🔧 Atualizar base</button>
         </div>
-        <div class="page-subtitle">Consulte instituições financeiras — dados fixos na última versão publicada</div>
+        <div class="page-subtitle">Consulte instituições financeiras — dados fixos na última versão publicada<span id="dataAtualizacao"></span></div>
 
         <div id="statsBar" class="stats-bar"></div>
 
@@ -17435,10 +17437,23 @@
                 const i1 = fonte.indexOf(INICIO);
                 const i2 = fonte.indexOf(FIM, i1);
                 if (i1 === -1 || i2 === -1) throw new Error('Marcadores de dados não encontrados no fonte.');
-                return fonte.slice(0, i1) + novoArray + '\n    let instMap' + fonte.slice(i2 + FIM.length);
+                // Stampa data/hora da atualização no meta tag
+                const agora = new Date().toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+                let resultado = fonte.slice(0, i1) + novoArray + '\n    let instMap' + fonte.slice(i2 + FIM.length);
+                resultado = resultado.replace(/<meta name="data-atualizacao" content="[^"]*">/, '<meta name="data-atualizacao" content="' + agora + '">');
+                return resultado;
             });
     }
     // ── Relógio ──
+    // ── Data de atualização ──
+    (function() {
+        const meta = document.querySelector('meta[name="data-atualizacao"]');
+        const span = document.getElementById('dataAtualizacao');
+        if (meta && meta.content && span) {
+            span.textContent = '· Atualizado em ' + meta.content;
+        }
+    })();
+
     function updateClock() {
         const el = document.getElementById('hDate');
         if (!el) return;
