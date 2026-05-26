@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Buscador de Instituições Financeiras</title>
-    <meta name="data-atualizacao" content="25/05/2026, 21:13">
+    <meta name="data-atualizacao" content="26/05/2026, 15:05">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0&display=swap" rel="stylesheet">
@@ -81,7 +81,11 @@
 
         /* ── Stats bar ── */
         .stats-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
-        .stat-pill { display:inline-flex; align-items:center; gap:0; background:var(--bg3); border:1px solid var(--border); border-radius:20px; overflow:hidden; font-size:11px; font-weight:600; color:var(--text2); padding-right:14px; }
+        .stat-pill { display:inline-flex; align-items:center; gap:0; background:var(--bg3); border:1px solid var(--border); border-radius:20px; overflow:hidden; font-size:11px; font-weight:600; color:var(--text2); padding-right:14px; cursor:pointer; transition:all .18s; user-select:none; }
+        .stat-pill:hover { border-color:var(--amber); color:var(--text); }
+        .stat-pill.active-all  { background:rgba(245,200,66,.12); border-color:var(--gold); color:var(--gold); }
+        .stat-pill.active-a    { background:rgba(46,204,113,.12); border-color:var(--green); color:var(--green); }
+        .stat-pill.active-bcd  { background:rgba(231,76,60,.12);  border-color:var(--red);   color:var(--red); }
         .stat-pill .dot { width:4px; align-self:stretch; flex:0 0 4px; display:block; margin-right:10px; }
         .dot-gold  { background:var(--gold); }
         .dot-green { background:var(--green); }
@@ -234,7 +238,7 @@
         <div id="statsBar" class="stats-bar"></div>
 
         <div class="search-wrap">
-            <label>🔍 Digite o nome da instituição (mínimo 2 letras)</label>
+            <label>🔍 Digite o nome da instituição (mínimo 2 letras)<span id="filterLabel" style="margin-left:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;"></span></label>
             <div class="search-inner">
                 <form onsubmit="return false;" autocomplete="off">
                     <input type="hidden" name="dummy" value="prevent-pwd-manager">
@@ -17198,6 +17202,7 @@
     }
     ];
     let instMap = new Map();
+    let activeRatingFilter = 'all'; // 'all' | 'a' | 'bcd'
     let searchInput, autocompleteDiv, clearBtn, currentFocus = -1;
         function getRatingColorClass(rating) {
         if (!rating) return 'rating-neutral';
@@ -17264,13 +17269,33 @@
     function updateStats() {
         const statsDiv = document.getElementById('statsBar');
         if (instituicoes.length === 0) { statsDiv.innerHTML = '<div class="stat-pill"><span class="dot dot-gold"></span>Nenhuma instituição carregada</div>'; return; }
-        const countA = instituicoes.filter(i => i.Rating && i.Rating.toString().toUpperCase().startsWith('A')).length;
+        const countA   = instituicoes.filter(i => i.Rating && i.Rating.toString().toUpperCase().startsWith('A')).length;
         const countRed = instituicoes.filter(i => i.Rating && (i.Rating.toString().toUpperCase().startsWith('B') || i.Rating.toString().toUpperCase().startsWith('C') || i.Rating.toString().toUpperCase().startsWith('D'))).length;
         statsDiv.innerHTML = `
-            <div class="stat-pill"><span class="dot dot-gold"></span>${instituicoes.length} instituições</div>
-            <div class="stat-pill"><span class="dot dot-green"></span>${countA} com rating A</div>
-            ${countRed > 0 ? `<div class="stat-pill"><span class="dot dot-red"></span>${countRed} com rating B/C/D</div>` : ''}
+            <div class="stat-pill ${activeRatingFilter==='all'?'active-all':''}" data-filter="all" title="Ver todas as instituições"><span class="dot dot-gold"></span>${instituicoes.length} instituições</div>
+            <div class="stat-pill ${activeRatingFilter==='a'?'active-a':''}"   data-filter="a"   title="Filtrar: somente rating A"><span class="dot dot-green"></span>${countA} com rating A</div>
+            ${countRed > 0 ? `<div class="stat-pill ${activeRatingFilter==='bcd'?'active-bcd':''}" data-filter="bcd" title="Filtrar: rating B/C/D"><span class="dot dot-red"></span>${countRed} com rating B/C/D</div>` : ''}
         `;
+        statsDiv.querySelectorAll('.stat-pill[data-filter]').forEach(pill => {
+            pill.addEventListener('click', () => {
+                activeRatingFilter = pill.dataset.filter;
+                const lbl = document.getElementById('filterLabel');
+                if (lbl) {
+                    if (activeRatingFilter === 'a')        lbl.textContent = '· filtrando: rating A';
+                    else if (activeRatingFilter === 'bcd') lbl.textContent = '· filtrando: rating B/C/D';
+                    else                                   lbl.textContent = '';
+                    lbl.style.color = activeRatingFilter === 'a' ? 'var(--green)' : activeRatingFilter === 'bcd' ? 'var(--red)' : 'var(--text3)';
+                }
+                updateStats(); // re-render pills with new active state
+                // Re-run current search with new filter
+                const term = searchInput ? searchInput.value.trim() : '';
+                if (term.length >= 2) {
+                    searchInput.dispatchEvent(new Event('input'));
+                } else {
+                    renderDetalhes(null);
+                }
+            });
+        });
     }
     function rebuildMap() { instMap.clear(); instituicoes.forEach(inst => instMap.set(inst['Instituição'], inst)); }
     function setupAutocomplete() {
@@ -17286,7 +17311,12 @@
             const term = e.target.value.trim();
             if (term.length < 2) { autocompleteDiv.style.display = 'none'; renderDetalhes(null); currentFocus = -1; return; }
             const termLower = term.toLowerCase();
-            const matches = instituicoes.filter(inst => inst['Instituição'].toLowerCase().includes(termLower));
+            const matches = instituicoes.filter(inst => {
+                if (!inst['Instituição'].toLowerCase().includes(termLower)) return false;
+                if (activeRatingFilter === 'a')   return inst.Rating && inst.Rating.toString().toUpperCase().startsWith('A');
+                if (activeRatingFilter === 'bcd') return inst.Rating && (inst.Rating.toString().toUpperCase().startsWith('B') || inst.Rating.toString().toUpperCase().startsWith('C') || inst.Rating.toString().toUpperCase().startsWith('D'));
+                return true;
+            });
             if (matches.length === 0) { autocompleteDiv.style.display = 'none'; renderDetalhes(null); currentFocus = -1; return; }
             autocompleteDiv.innerHTML = '';
             matches.slice(0, 50).forEach((inst, idx) => {
