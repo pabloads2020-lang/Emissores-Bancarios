@@ -209,6 +209,35 @@
         footer { text-align:center; font-size:.7rem; color:var(--text3); margin-top:16px; }
 
         @media (max-width:640px) { body { padding:16px; } .inst-name { font-size:1rem; } }
+    
+        /* ── Ver todos ── */
+        .btn-ver-todos {
+            background:rgba(74,158,255,.1); border:1px solid rgba(74,158,255,.35);
+            color:var(--blue); padding:8px 18px; border-radius:10px;
+            font-family:inherit; font-size:.78rem; font-weight:600;
+            cursor:pointer; transition:all .2s; white-space:nowrap;
+        }
+        .btn-ver-todos:hover { background:rgba(74,158,255,.18); border-color:var(--blue); }
+        .btn-ver-todos.active { background:rgba(74,158,255,.18); border-color:var(--blue); }
+        .fundos-list-card { animation: fadeSlideIn .22s ease; }
+        .fundos-list-header { display:flex; align-items:center; justify-content:space-between; padding-bottom:14px; margin-bottom:4px; border-bottom:1px solid var(--border); }
+        .fundos-list-header h2 { font-size:.95rem; font-weight:700; color:var(--text); }
+        .fundo-item-arrow { font-size:.7rem; color:var(--text3); flex-shrink:0; transition:transform .2s; margin-left:4px; }
+        .fundo-item-wrap.open .fundo-item-arrow { transform:rotate(180deg); }
+        .fundo-detail-panel { display:none; padding:12px 12px 14px; border-top:1px solid var(--border); background:var(--bg3); border-radius:0 0 10px 10px; }
+        .fundo-detail-panel.open { display:block; animation: fadeSlideIn .18s ease; }
+        .fundo-detail-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+        .fundo-detail-item { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; }
+        .fundo-detail-label { font-size:.65rem; text-transform:uppercase; letter-spacing:.8px; color:var(--text3); font-weight:700; }
+        .fundo-detail-value { font-size:.85rem; font-weight:700; color:var(--amber); margin-top:3px; }
+        .fundo-item-wrap { border:1px solid var(--border); border-radius:10px; margin-bottom:4px; overflow:hidden; transition:border-color .15s; }
+        .fundo-item-wrap:hover { border-color:rgba(74,158,255,.3); }
+        .fundo-item-wrap.open { border-color:rgba(74,158,255,.4); }
+        .fundo-item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 12px; cursor:pointer; transition:background .15s; }
+        .fundo-item:hover { background:var(--bg3); }
+        .fundo-item-name { font-size:.82rem; font-weight:600; color:var(--text); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .fundo-item-meta { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+        .fundo-item-cat { font-size:.68rem; color:var(--text3); white-space:nowrap; }
     </style>
 </head>
 <body>
@@ -229,9 +258,12 @@
     <div class="card">
         <div class="page-header">
             <div>
-                <div class="page-title">Rating de Instituições Financeiras</div>
+                <div class="page-title">Rating — Instituições Financeiras</div>
             </div>
-            <button class="admin-btn" id="adminBtn">🔧 Atualizar base</button>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <button class="btn-ver-todos" id="verTodosBtn">Ver todos</button>
+                <button class="admin-btn" id="adminBtn">🔧 Atualizar base</button>
+            </div>
         </div>
         <div class="page-subtitle">Consulte instituições financeiras — dados fixos na última versão publicada<span id="dataAtualizacao"></span></div>
 
@@ -253,6 +285,10 @@
     </div>
 
     <!-- Result -->
+    <div id="listArea" style="display:none;">
+        <div class="card fundos-list-card" id="listCard"></div>
+    </div>
+
     <div id="resultArea" style="display:none;">
         <div class="card" id="resultCard"></div>
     </div>
@@ -17474,6 +17510,99 @@
                 return resultado;
             });
     }
+
+    // ── Ver todos ──
+    function renderListaItems() {
+        const listCard = document.getElementById('listCard');
+        let items = [...instituicoes];
+        if (activeRatingFilter === 'a')   items = items.filter(i => i.Rating && i.Rating.toString().toUpperCase().startsWith('A'));
+        if (activeRatingFilter === 'bcd') items = items.filter(i => i.Rating && (i.Rating.toString().toUpperCase().startsWith('B') || i.Rating.toString().toUpperCase().startsWith('C') || i.Rating.toString().toUpperCase().startsWith('D')));
+
+        listCard.innerHTML = `
+            <div class="fundos-list-header">
+                <h2>📋 ${items.length} instituição${items.length!==1?'ões':''}</h2>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button id="limparListaBtn" style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:4px 12px;font-size:.72rem;font-weight:600;color:var(--text3);cursor:pointer;font-family:inherit;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">🗑 Limpar seleção</button>
+                    <span style="font-size:.75rem;color:var(--text3);">▼ para expandir</span>
+                </div>
+            </div>
+            <div id="fundosList">
+                ${items.map(inst => {
+                    const rClass = getRatingColorClass(inst['Rating']);
+                    const badge  = inst['Rating'] ? `<span class="rating-badge ${rClass}">${escapeHtml(inst['Rating'])}</span>` : '';
+                    const pct = v => (v !== undefined && v !== '' && v !== null) ? (parseFloat(v)*100).toFixed(2)+'%' : '—';
+                    const num = v => (v !== undefined && v !== '' && v !== null) ? Number(v).toLocaleString('pt-BR',{maximumFractionDigits:0}) : '—';
+                    const campos = [
+                        { label:'Segmento',      val: inst['Seg']          || '—' },
+                        { label:'Peso Sugerido', val: pct(inst['Peso Sug.'])       },
+                        { label:'Score Final',   val: num(inst['Score Final'])     },
+                        { label:'Basileia',      val: pct(inst['Basileia'])        },
+                        { label:'NPL (15d)',     val: pct(inst['NPL (15d)'])       },
+                        { label:'ROE',           val: pct(inst['ROE'])             },
+                        { label:'LDR',           val: pct(inst['LDR'])             },
+                        { label:'IRBB/PR',       val: pct(inst['IRBB/PR'])         },
+                    ];
+                    const detailGrid = campos.filter(cp => cp.val && cp.val !== '—').map(cp =>
+                        `<div class="fundo-detail-item"><div class="fundo-detail-label">${cp.label}</div><div class="fundo-detail-value">${escapeHtml(cp.val)}</div></div>`
+                    ).join('');
+                    return `
+                    <div class="fundo-item-wrap" data-nome="${escapeHtml(inst['Instituição'])}">
+                        <div class="fundo-item">
+                            <span class="fundo-item-name" title="${escapeHtml(inst['Instituição'])}">${escapeHtml(inst['Instituição'])}</span>
+                            <div class="fundo-item-meta">
+                                <span class="fundo-item-cat">${escapeHtml(inst['Seg']||'')}</span>
+                                ${badge}
+                                <span class="fundo-item-arrow">▼</span>
+                            </div>
+                        </div>
+                        <div class="fundo-detail-panel">
+                            <div class="fundo-detail-grid">${detailGrid}</div>
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>
+        `;
+        document.getElementById('listArea').style.display = 'block';
+
+        listCard.querySelectorAll('.fundo-item-wrap').forEach(wrap => {
+            wrap.querySelector('.fundo-item').addEventListener('click', () => {
+                const isOpen = wrap.classList.contains('open');
+                listCard.querySelectorAll('.fundo-item-wrap.open').forEach(el => {
+                    el.classList.remove('open');
+                    el.querySelector('.fundo-detail-panel').classList.remove('open');
+                });
+                if (!isOpen) {
+                    wrap.classList.add('open');
+                    wrap.querySelector('.fundo-detail-panel').classList.add('open');
+                    wrap.scrollIntoView({behavior:'smooth', block:'nearest'});
+                }
+            });
+        });
+
+        const limparBtn = document.getElementById('limparListaBtn');
+        if (limparBtn) limparBtn.addEventListener('click', () => {
+            listCard.querySelectorAll('.fundo-item-wrap.open').forEach(el => {
+                el.classList.remove('open');
+                el.querySelector('.fundo-detail-panel').classList.remove('open');
+            });
+        });
+    }
+
+    let listVisible = false;
+    document.getElementById('verTodosBtn').addEventListener('click', () => {
+        listVisible = !listVisible;
+        const btn = document.getElementById('verTodosBtn');
+        if (listVisible) {
+            btn.classList.add('active');
+            btn.textContent = '✕ Fechar lista';
+            renderListaItems();
+        } else {
+            btn.classList.remove('active');
+            btn.textContent = 'Ver todos';
+            document.getElementById('listArea').style.display = 'none';
+        }
+    });
+
     // ── Relógio ──
     // ── Data de atualização ──
     (function() {
