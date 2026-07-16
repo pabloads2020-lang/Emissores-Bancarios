@@ -225,11 +225,15 @@
         .stat-pill:hover { border-color:var(--amber); color:var(--text); }
         .stat-pill.active-all  { background:rgba(245,200,66,.12); border-color:var(--gold); color:var(--gold); }
         .stat-pill.active-a    { background:rgba(46,204,113,.12); border-color:var(--green); color:var(--green); }
-        .stat-pill.active-bcd  { background:rgba(231,76,60,.12);  border-color:var(--red);   color:var(--red); }
+        .stat-pill.active-b    { background:rgba(74,159,255,.12); border-color:var(--blue);  color:var(--blue); }
+        .stat-pill.active-c    { background:rgba(224,172,44,.12); border-color:var(--amber); color:var(--amber); }
+        .stat-pill.active-d    { background:rgba(231,76,60,.12);  border-color:var(--red);   color:var(--red); }
         .stat-pill .dot { width:4px; align-self:stretch; flex:0 0 4px; display:block; margin-right:10px; }
         .dot-gold  { background:var(--gold); }
         .dot-green { background:var(--green); }
         .dot-red   { background:var(--red); }
+        .dot-blue  { background:var(--blue); }
+        .dot-amber { background:var(--amber); }
 
         /* ── Search ── */
         .search-wrap { position:relative; }
@@ -17392,8 +17396,12 @@
     }
     ];
     let instMap = new Map();
-    let activeRatingFilter = 'all'; // 'all' | 'a' | 'bcd'
+    let activeRatingFilter = 'all'; // 'all' | 'a' | 'b' | 'c' | 'd'
     let searchInput, autocompleteDiv, clearBtn, currentFocus = -1;
+    function matchesRatingFilter(inst) {
+        if (activeRatingFilter === 'all') return true;
+        return !!(inst.Rating && inst.Rating.toString().toUpperCase().startsWith(activeRatingFilter.toUpperCase()));
+    }
         function getRatingColorClass(rating) {
         if (!rating) return 'rating-neutral';
         const r = rating.toString().toUpperCase();
@@ -17459,22 +17467,26 @@
     function updateStats() {
         const statsDiv = document.getElementById('statsBar');
         if (instituicoes.length === 0) { statsDiv.innerHTML = '<div class="stat-pill"><span class="dot dot-gold"></span>Nenhuma instituição carregada</div>'; return; }
-        const countA   = instituicoes.filter(i => i.Rating && i.Rating.toString().toUpperCase().startsWith('A')).length;
-        const countRed = instituicoes.filter(i => i.Rating && (i.Rating.toString().toUpperCase().startsWith('B') || i.Rating.toString().toUpperCase().startsWith('C') || i.Rating.toString().toUpperCase().startsWith('D'))).length;
+        const countA = instituicoes.filter(i => i.Rating && i.Rating.toString().toUpperCase().startsWith('A')).length;
+        const countB = instituicoes.filter(i => i.Rating && i.Rating.toString().toUpperCase().startsWith('B')).length;
+        const countC = instituicoes.filter(i => i.Rating && i.Rating.toString().toUpperCase().startsWith('C')).length;
+        const countD = instituicoes.filter(i => i.Rating && i.Rating.toString().toUpperCase().startsWith('D')).length;
         statsDiv.innerHTML = `
             <div class="stat-pill ${activeRatingFilter==='all'?'active-all':''}" data-filter="all" title="Ver todas as instituições"><span class="dot dot-gold"></span>${instituicoes.length} instituições</div>
             <div class="stat-pill ${activeRatingFilter==='a'?'active-a':''}"   data-filter="a"   title="Filtrar: somente rating A"><span class="dot dot-green"></span>${countA} com rating A</div>
-            ${countRed > 0 ? `<div class="stat-pill ${activeRatingFilter==='bcd'?'active-bcd':''}" data-filter="bcd" title="Filtrar: rating B/C/D"><span class="dot dot-red"></span>${countRed} com rating B/C/D</div>` : ''}
+            ${countB > 0 ? `<div class="stat-pill ${activeRatingFilter==='b'?'active-b':''}" data-filter="b" title="Filtrar: somente rating B"><span class="dot dot-blue"></span>${countB} com rating B</div>` : ''}
+            ${countC > 0 ? `<div class="stat-pill ${activeRatingFilter==='c'?'active-c':''}" data-filter="c" title="Filtrar: somente rating C"><span class="dot dot-amber"></span>${countC} com rating C</div>` : ''}
+            ${countD > 0 ? `<div class="stat-pill ${activeRatingFilter==='d'?'active-d':''}" data-filter="d" title="Filtrar: somente rating D"><span class="dot dot-red"></span>${countD} com rating D</div>` : ''}
         `;
+        const ratingLabels = { a: 'A', b: 'B', c: 'C', d: 'D' };
+        const ratingColors = { a: 'var(--green)', b: 'var(--blue)', c: 'var(--amber)', d: 'var(--red)' };
         statsDiv.querySelectorAll('.stat-pill[data-filter]').forEach(pill => {
             pill.addEventListener('click', () => {
                 activeRatingFilter = pill.dataset.filter;
                 const lbl = document.getElementById('filterLabel');
                 if (lbl) {
-                    if (activeRatingFilter === 'a')        lbl.textContent = '· filtrando: rating A';
-                    else if (activeRatingFilter === 'bcd') lbl.textContent = '· filtrando: rating B/C/D';
-                    else                                   lbl.textContent = '';
-                    lbl.style.color = activeRatingFilter === 'a' ? 'var(--green)' : activeRatingFilter === 'bcd' ? 'var(--red)' : 'var(--text3)';
+                    lbl.textContent = ratingLabels[activeRatingFilter] ? ('· filtrando: rating ' + ratingLabels[activeRatingFilter]) : '';
+                    lbl.style.color = ratingColors[activeRatingFilter] || 'var(--text3)';
                 }
                 updateStats(); // re-render pills with new active state
                 // Re-run current search with new filter
@@ -17484,6 +17496,13 @@
                 } else {
                     renderDetalhes(null);
                 }
+
+                // Clicar em um pill (A/B/C/D/todos) já abre a lista filtrada correspondente,
+                // reaproveitando o mesmo botão e função do "Ver todos".
+                listVisible = true;
+                const btnVerTodos = document.getElementById('verTodosBtn');
+                if (btnVerTodos) { btnVerTodos.classList.add('active'); btnVerTodos.textContent = '✕ Fechar lista'; }
+                renderListaItems();
             });
         });
     }
@@ -17503,9 +17522,7 @@
             const termLower = term.toLowerCase();
             const matches = instituicoes.filter(inst => {
                 if (!inst['Instituição'].toLowerCase().includes(termLower)) return false;
-                if (activeRatingFilter === 'a')   return inst.Rating && inst.Rating.toString().toUpperCase().startsWith('A');
-                if (activeRatingFilter === 'bcd') return inst.Rating && (inst.Rating.toString().toUpperCase().startsWith('B') || inst.Rating.toString().toUpperCase().startsWith('C') || inst.Rating.toString().toUpperCase().startsWith('D'));
-                return true;
+                return matchesRatingFilter(inst);
             });
             if (matches.length === 0) { autocompleteDiv.style.display = 'none'; renderDetalhes(null); currentFocus = -1; return; }
             autocompleteDiv.innerHTML = '';
@@ -17669,8 +17686,7 @@
     function renderListaItems() {
         const listCard = document.getElementById('listCard');
         let items = [...instituicoes];
-        if (activeRatingFilter === 'a')   items = items.filter(i => i.Rating && i.Rating.toString().toUpperCase().startsWith('A'));
-        if (activeRatingFilter === 'bcd') items = items.filter(i => i.Rating && (i.Rating.toString().toUpperCase().startsWith('B') || i.Rating.toString().toUpperCase().startsWith('C') || i.Rating.toString().toUpperCase().startsWith('D')));
+        items = items.filter(matchesRatingFilter);
 
         listCard.innerHTML = `
             <div class="fundos-list-header">
