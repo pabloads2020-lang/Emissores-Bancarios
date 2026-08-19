@@ -10,13 +10,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg:    #0d0f17;
-            --bg2:   #141720;
-            --bg3:   #1a1e2b;
+            --bg:    #07080B;
+            --bg2:   #0D0F14;
+            --bg3:   #12151C;
             --border:#2a2e3f;
-            --text:  #e1e3ef;
-            --text2: #9a9eb8;
-            --text3: #5c6080;
+            --text:  #F5F6F8;
+            --text2: #9CA1AC;
+            --text3: #767C8A;
             --gold:  #f5c842;
             --amber: #e0ac2c;
             --green: #2ecc71;
@@ -48,8 +48,9 @@
             --gold-topbar: #f5c842;
             --amber-topbar: #e0ac2c;
             font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg-topbar);
-            border-bottom: 1px solid var(--border-topbar);
+            background: rgba(20,23,32,.3);
+            border-bottom: 1px solid rgba(255,255,255,.14);
+            box-shadow: 0 4px 16px -8px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(255,255,255,.05);
             height: 52px;
             display: flex;
             align-items: center;
@@ -59,6 +60,8 @@
             position: sticky;
             top: 0;
             z-index: 200;
+            backdrop-filter: blur(8px) saturate(200%);
+            -webkit-backdrop-filter: blur(8px) saturate(200%);
         }
         body.light .hub-topbar {
             --bg-topbar: #ffffff;
@@ -68,6 +71,11 @@
             --text3-topbar: #8a90a8;
             --gold-topbar: #b8860b;
             --amber-topbar: #c47d00;
+            background: #ffffff;
+            border-bottom: 1px solid #d4d8e2;
+            box-shadow: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
         }
         .hub-topbar-left, .hub-topbar-right {
             display: flex;
@@ -322,16 +330,18 @@
         /* ── Modal ── */
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.75); z-index:1000; justify-content:center; align-items:center; }
         .modal-content {
-            background:var(--bg2); border:1px solid var(--border);
+            background:rgba(20,23,32,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+            border:1px solid rgba(255,255,255,.1);
+            box-shadow: 0 30px 70px -20px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.06);
             border-radius:20px; padding:28px; width:90%; max-width:400px;
         }
-        .modal-content h3 { font-size:1rem; font-weight:700; color:var(--gold); margin-bottom:16px; }
+        .modal-content h3 { font-size:1rem; font-weight:700; color:var(--gold); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
         .modal-content input[type=password] {
-            width:100%; background:var(--bg3); border:1px solid var(--border);
+            width:100%; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.1);
             padding:10px 16px; border-radius:30px; color:var(--text);
             font-family:inherit; font-size:.9rem; margin:12px 0;
         }
-        .modal-content input[type=password]:focus { outline:none; border-color:var(--amber); }
+        .modal-content input[type=password]:focus { outline:none; border-color:rgba(255,255,255,.25); }
         .upload-area-sm {
             border:1px dashed var(--border); border-radius:12px;
             padding:16px; text-align:center; margin-top:12px; cursor:pointer;
@@ -341,7 +351,7 @@
         .upload-area-sm input[type=file] { display:none; }
         .flex-btns { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
         .btn {
-            background:var(--bg3); border:1px solid var(--border);
+            background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
             padding:8px 20px; border-radius:30px; color:var(--text2);
             font-family:inherit; font-size:.82rem; cursor:pointer; transition:.2s;
         }
@@ -419,7 +429,7 @@
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <button class="btn-ver-todos" id="verTodosBtn">Ver todos</button>
-                <button class="admin-btn" id="adminBtn">🔧 Atualizar base</button>
+                <button class="admin-btn" id="adminBtn">Atualizar base</button>
             </div>
         </div>
         <div class="page-subtitle">Consulte instituições financeiras — dados fixos na última versão publicada<span id="dataAtualizacao"></span></div>
@@ -427,7 +437,7 @@
         <div id="statsBar" class="stats-bar"></div>
 
         <div class="search-wrap">
-            <label>🔍 Digite o nome da instituição (mínimo 2 letras)<span id="filterLabel" style="margin-left:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;"></span></label>
+            <label>Digite o nome da instituição (mínimo 2 letras)<span id="filterLabel" style="margin-left:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;"></span></label>
             <div class="search-inner">
                 <form onsubmit="return false;" autocomplete="off">
                     <input type="hidden" name="dummy" value="prevent-pwd-manager">
@@ -450,17 +460,17 @@
         <div class="card" id="resultCard"></div>
     </div>
 
-    <footer>💡 Dados embutidos nesta versão. Atualização apenas pelo administrador.</footer>
+    <footer>Dados embutidos nesta versão. Atualização apenas pelo administrador.</footer>
 </div>
 
 <!-- Admin modal -->
 <div id="adminModal" class="modal">
     <div class="modal-content">
-        <h3>🔐 Atualização de dados</h3>
+        <h3><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Atualização de dados</h3>
         <form onsubmit="return false;" autocomplete="off">
             <input type="password" id="adminPassword" placeholder="Senha de administrador" autocomplete="new-password">
             <div id="uploadAreaModal" class="upload-area-sm" style="display:none;">
-                <div>📂 Clique ou arraste o novo arquivo Excel</div>
+                <div>Clique ou arraste o novo arquivo Excel</div>
                 <input type="file" id="adminFileInput" accept=".xlsx,.xls" autocomplete="off">
             </div>
         </form>
@@ -17652,7 +17662,7 @@
         a.download = 'buscador_atualizado.html';
         a.click();
         URL.revokeObjectURL(url);
-        alert('✅ Novo HTML gerado com ' + novasInst.length + ' instituições. Substitua o arquivo no servidor.');
+        alert('Novo HTML gerado com ' + novasInst.length + ' instituições. Substitua o arquivo no servidor.');
     }
     function gerarHTMLComDados(dados) {
         // Serializa os novos dados
@@ -17690,9 +17700,9 @@
 
         listCard.innerHTML = `
             <div class="fundos-list-header">
-                <h2>📋 ${items.length} instituição${items.length!==1?'ões':''}</h2>
+                <h2>${items.length} instituição${items.length!==1?'ões':''}</h2>
                 <div style="display:flex;gap:8px;align-items:center;">
-                    <button id="limparListaBtn" style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:4px 12px;font-size:.72rem;font-weight:600;color:var(--text3);cursor:pointer;font-family:inherit;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">🗑 Limpar seleção</button>
+                    <button id="limparListaBtn" style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:4px 12px;font-size:.72rem;font-weight:600;color:var(--text3);cursor:pointer;font-family:inherit;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Limpar seleção</button>
                     <span style="font-size:.75rem;color:var(--text3);">▼ para expandir</span>
                 </div>
             </div>
@@ -17825,7 +17835,7 @@
         if (window.self !== window.top) {
             window.parent.postMessage({ action: 'hubNavigate', target: 'home' }, '*');
         } else {
-            window.location.href = "https://pabloads2020-lang.github.io/Dashboard-Ferramentas-Integradas/";
+            window.location.href = "https://pabloads2020-lang.github.io/Dashboard-Ferramentas-Integradas/dashboard.html";
         }
     });
     document.getElementById('hubNewTabBtn')?.addEventListener('click', () => {
